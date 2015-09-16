@@ -1,0 +1,26 @@
+{
+  "name": "CTFPad",
+  "version": "0.1.0",
+  "description": "CTF Challenge Management with Etherpad",
+  "author": "Kasalehlia <kasalehlia@clonejo.de>",
+  "dependencies": {
+    "bcrypt-nodejs": "*",
+    "consolidate": "*",
+    "express": "3.x",
+    "http-proxy": "1.x",
+    "mustache": "*",
+    "mv": "^2.0.3",
+    "sqlite3": "*",
+    "ws": "*",
+    "coffee-script": "1.x"
+  },
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StratumAuhuur/CTFPad"
+  },
+  "bugs": {
+    "url": "https://github.com/StratumAuhuur/CTFPad/issues"
+  },
+  "license": "MIT"
+}

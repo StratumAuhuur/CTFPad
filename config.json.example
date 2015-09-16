@@ -1,0 +1,8 @@
+{
+	"port": 1234,
+	"etherpad_port": 1235,
+	"etherpad_internal_port": 9001,
+	"keyfile": "key.pem",
+	"certfile": "cert.pem",
+	"authkey": "CHANGE_THIS"
+}

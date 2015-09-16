@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>StratumAuhuur</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <script src="js/jquery.js"></script>
+    <script src="js/bootstrap.js"></script>
+    <script type="text/javascript">
+    window.register = function() {
+      $.post('/register', $('#registerform').serialize(), function(ans) {
+        $('#registermodal .alert').removeClass('alert-success alert-error');
+        if (ans.success) {
+          $('#registermodal .alert').addClass('alert-success').html('user registered');
+        } else {
+          $('#registermodal .alert').addClass('alert-error').html(ans.error);
+        }
+        $('#registermodal .alert').show();
+      }, 'json');
+    }
+    </script>
+  </head>
+  <body>
+    <div class="navbar navbar-inverse">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="brand">StratumAuhuur CTFPad</a>
+          <ul class="nav pull-right">
+            <li>
+              <a href="#registermodal" data-toggle="modal">Register</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <form action="/login" method="POST" class="form-horizontal">
+          <div class="control-group">
+            <label for="login_username" class="control-label">username:</label>
+            <div class="controls">
+              <input type="text" name="name" id="login_username" />
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="login_password" class="control-label">password:</label>
+            <div class="controls">
+              <input type="password" name="password" id="login_password" />
+            </div>
+          </div>
+          <div class="control-group">
+            <div class="controls">
+              <input type="submit" value="Login" class="btn btn-primary"/>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="registermodal" class="modal hide fade">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>Registration</h3>
+      </div>
+      <div class="modal-body">
+        <div class="alert hide"></div>
+        <form id="registerform" class="form-horizontal">
+          <div class="control-group">
+            <label for="register_username" class="control-label">username:</label>
+            <div class="controls">
+              <input type="text" name="name" id="register_username" />
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="register_password1" class="control-label">password:</label>
+            <div class="controls">
+              <input type="password" name="password1" id="register_password1" />
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="register_password2" class="control-label">repeat:</label>
+            <div class="controls">
+              <input type="password" name="password2" id="register_password2" />
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="register_authkey" class="control-label">authkey:</label>
+            <div class="controls">
+              <input type="password" name="authkey" id="register_authkey" />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <a href="#" class="btn btn-primary" onclick="window.register()">Register</a>
+      </div>
+    </div>
+  </body>
+</html>

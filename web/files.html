@@ -1,0 +1,31 @@
+<table class="table table-striped">
+  <tbody>
+    <tr>
+      <th>Name</th>
+      <th>User</th>
+      <th>Mime Type</th>
+      <th>Uploaded</th>
+      <th>Actions</th>
+    </tr>
+    {{#files}}
+    <tr>
+      <td><a href="/file/{{id}}/{{name}}">{{name}}</a></td>
+      <td>{{user}}</td>
+      <td>{{mimetype}}</td>
+      <td><abbr class="timeago" title="{{uploaded}}">{{uploaded}}</span></td>
+      <td>
+        <a href="/file/{{id}}/{{name}}"><i class="icon-download-alt"></i></a>
+        <a class="deletefile" href="#" data-id="{{id}}" data-name="{{name}}"><i class="icon-trash"></i></a>
+      </td>
+    </tr>
+    {{/files}}
+  </tbody>
+</table>
+<script type="text/javascript">
+$('.timeago').timeago()
+</script>
+<span class="btn btn-success fileinput-button" style="float: left; margin-right: 5px;">
+  <i class="icon-upload icon-white"></i>
+  <span>Upload</span>
+  <input id="fileupload" type="file" name="files" multiple>
+</span>
