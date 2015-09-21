@@ -23,7 +23,7 @@ Configuration
 - etherpad\_port: TCP port where Etherpad Lite will be reachable from the outside
 - etherpad\_internal\_port: TCP port where Etherpad Lite is reachable locally
 - keyfile: location of the SSL key file
-- certfile: location of the SSL key file
+- certfile: location of the SSL cert file
 - authkey: a *secret* string needed to register
 
 ### Etherpad Lite
@@ -35,5 +35,5 @@ Start the server by running `node main.js` or `coffee main.coffee` if Coffeescri
 
 Using
 -----
-If you are using a self-signed certificate (which is the case for certificates generated with `newcerts.sh`) it may be necessary to access `https://$host:$etherpad_port` directly to add an certificate exception since most browsers do not allow adding exceptions for iframes.
+If you are using a self-signed certificate (which is the case for certificates generated with `new_certs.sh`) it may be necessary to access `https://$host:$etherpad_port` directly to add an certificate exception since most browsers do not allow adding exceptions for iframes.
 
