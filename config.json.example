@@ -4,5 +4,6 @@
 	"etherpad_internal_port": 9001,
 	"keyfile": "key.pem",
 	"certfile": "cert.pem",
+	"fullchain": "fullchain.pem",
 	"authkey": "CHANGE_THIS"
 }

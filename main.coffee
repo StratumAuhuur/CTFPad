@@ -23,6 +23,18 @@ else
   console.log "config file not found"
   return
 
+# nodejs' http cannot deal with a chain in one file ->
+# quickfix according to http://stackoverflow.com/a/31629223/1518225
+cert = []
+ca = []
+chain = fs.readFileSync(config.fullchain).toString()
+chain.split('\n').forEach (line) ->
+  cert.push line
+  if line.match(/-END CERTIFICATE-/)
+    ca.push cert.join('\n')
+    cert = []
+  return
+
 app = express()
 app.engine 'html', cons.mustache
 app.set 'view engine', 'html'
@@ -38,6 +50,7 @@ app.use '/doc/', express.static 'web/doc/'
 options =
   key: fs.readFileSync config.keyfile
   cert: fs.readFileSync config.certfile
+  ca: ca
 server = https.createServer options, app
 scoreboards = {2: ['test','test2']}
 
