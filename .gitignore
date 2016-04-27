@@ -6,3 +6,4 @@ config.json
 *.swp
 uploads
 etherpad-lite/
+ctfpad-service.*
