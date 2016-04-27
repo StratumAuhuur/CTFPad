@@ -54,6 +54,16 @@ options =
 server = https.createServer options, app
 scoreboards = {2: ['test','test2']}
 
+#app.use (req, res, next) ->
+#  if !req.secure
+#    return res.redirect([
+#      'https://'
+#      req.get('Host')
+#      req.url
+#    ].join(''))
+#    next()
+#    return
+
 validateLogin = (user, pass, cb) ->
   if user and pass then db.checkPassword user, pass, cb
   else setImmediate cb, false
@@ -227,6 +237,11 @@ app.post '/upload/:objtype/:objid', (req, res) ->
     if user
       upload user, req.params.objtype, req.params.objid, req, res
     else res.send 403
+
+app.get '/search', (req, res) ->
+  validateSession req.cookies.ctfpad, (user) ->
+    unless user then res.sendfile 'web/login.html'
+    else res.sendfile 'web/stuff.html'
 
 api = require './api.coffee'
 api.init app, db, upload, ''
