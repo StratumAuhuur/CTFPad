@@ -229,7 +229,7 @@ app.post '/upload/:objtype/:objid', (req, res) ->
     else res.send 403
 
 api = require './api.coffee'
-api.init app, db, upload, ''
+api.init app, db, upload, config, ''
 
 ## PROXY INIT
 proxyTarget = {host: 'localhost', port: config.etherpad_internal_port}
@@ -266,6 +266,13 @@ etherpad.stdout.on 'data', (line) ->
 etherpad.stderr.on 'data', (line) ->
   console.log "[etherpad] #{line.toString 'utf8', 0, line.length-1}"
 
+# read etherpad API key and store in config object
+fs.readFile 'etherpad-lite/APIKEY.txt', "utf8", (err, data) ->
+  if err
+    console.log "failed to read etherpad apikey: " + err
+  else
+    config.etherpadAPIKey = data
+
 wss = new WebSocketServer {server:server}
 wss.broadcast = (msg, exclude, scope=null) ->
   for c in this.clients
@@ -284,7 +291,7 @@ wss.on 'connection', (sock) ->
   sock.on 'message', (message) ->
     msg = null
     try msg = JSON.parse(message) catch e then return
-    unless sock.authenticated 
+    unless sock.authenticated
       if typeof msg is 'string'
         validateSession msg, (ans) ->
           if ans

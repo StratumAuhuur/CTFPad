@@ -13,7 +13,7 @@ sql = new sqlite3.Database 'ctfpad.sqlite', ->
   stmts.insertSession = sql.prepare 'UPDATE user SET sessid = ? WHERE name = ?'
   stmts.voidSession = sql.prepare 'UPDATE user SET sessid = NULL WHERE sessid = ?'
   stmts.getChallenges = sql.prepare 'SELECT id,title,category,points,done FROM challenge WHERE ctf = ? ORDER BY category,points,id'
-  stmts.getChallenge = sql.prepare 'SELECT * FROM challenge WHERE id = ?' 
+  stmts.getChallenge = sql.prepare 'SELECT * FROM challenge WHERE id = ?'
   stmts.addChallenge = sql.prepare 'INSERT INTO challenge (ctf, title, category, points) VALUES (?,?,?,?)'
   stmts.modifyChallenge = sql.prepare 'UPDATE challenge SET title = ?, category = ?, points = ? WHERE id = ?'
   stmts.setDone = sql.prepare 'UPDATE challenge SET done = ? WHERE id = ?'

@@ -1,4 +1,4 @@
-exports.init = (app, db, upload, prefix) ->
+exports.init = (app, db, upload, config, prefix) ->
   # UTIL
   validateApiKey = (req, res, cb = ->) ->
     db.validateApiKey req.header('X-Apikey'), (user) ->
@@ -25,6 +25,11 @@ exports.init = (app, db, upload, prefix) ->
     else
       res.send 400
       return false
+
+  # direct etherpad interaction
+  getEtherpadHTML = (pad, resp) ->
+      request.get("http://localhost:#{config.etherpad_internal_port}/api/1/getHTML?apikey=#{config.etherpadAPIKey}&padID=#{pad}")
+        .pipe(resp)
 
   # USER Endpoints
   app.get "#{prefix}/user/whoami", (req, res) ->
@@ -207,5 +212,11 @@ exports.init = (app, db, upload, prefix) ->
       upload user, 'challenge', req.params.challenge, req, res
 
 
-
-
+  app.get "#{prefix}/challenges/:challenge/html", (req, res) ->
+    try
+      req.params.challenge = parseInt req.params.challenge
+    catch e
+      res.send 400
+      return
+    validateApiKey req, res, (user) ->
+      getEtherpadHTML "challenge#{req.params.challenge}" res
