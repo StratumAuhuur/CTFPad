@@ -30,8 +30,14 @@ exports.init = (app, db, upload, config, prefix) ->
 
   # direct etherpad interaction
   getEtherpadHTML = (pad, resp) ->
-      request.get("http://localhost:#{config.etherpad_internal_port}/api/1/getHTML?apikey=#{config.etherpadAPIKey}&padID=#{pad}")
-        .pipe(resp)
+    url = "http://localhost:#{config.etherpad_internal_port}/api/1/getHTML?apikey=#{config.etherpadAPIKey}&padID=#{pad}"
+    request.get url, (err, eresp, body) ->
+      if not err and eresp.statusCode == 200
+        data = JSON.parse(body)
+        if data.code == 0
+          resp.json {html: data.data.html}
+          return
+       resp.json {html: ""}
 
   # USER Endpoints
   app.get "#{prefix}/user/whoami", (req, res) ->
