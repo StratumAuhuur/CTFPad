@@ -12,7 +12,8 @@
     "mv": "^2.0.3",
     "sqlite3": "*",
     "ws": "*",
-    "coffee-script": "1.x"
+    "coffee-script": "1.x",
+    "request": "2"
   },
   "main": "main.js",
   "repository": {

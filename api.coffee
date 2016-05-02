@@ -1,3 +1,5 @@
+request = require('request')
+
 exports.init = (app, db, upload, config, prefix) ->
   # UTIL
   validateApiKey = (req, res, cb = ->) ->
@@ -219,4 +221,4 @@ exports.init = (app, db, upload, config, prefix) ->
       res.send 400
       return
     validateApiKey req, res, (user) ->
-      getEtherpadHTML "challenge#{req.params.challenge}" res
+      getEtherpadHTML "challenge#{req.params.challenge}", res
