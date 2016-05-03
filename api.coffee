@@ -141,6 +141,38 @@ exports.init = (app, db, upload, config, prefix) ->
     validateApiKey req, res, (user) ->
       upload user, 'ctf', req.params.ctf, req, res
 
+  app.get "#{prefix}/ctfs/:ctf/html", (req, res) ->
+    try
+      req.params.ctf = parseInt req.params.ctf
+    catch e
+      res.send 400
+      return
+    validateApiKey req, res, (user) ->
+      try
+        data = getEtherpadAPI "getHTML", "ctf#{req.params.ctf}", (data, err) ->
+          if not err
+            res.json {html: data.data.html}
+          else
+            res.json err
+      catch e
+        res.send 400
+
+  app.get "#{prefix}/ctfs/:ctf/text", (req, res) ->
+    try
+      req.params.ctf = parseInt req.params.ctf
+    catch e
+      res.send 400
+      return
+    validateApiKey req, res, (user) ->
+      try
+        data = getEtherpadAPI "getText", "ctf#{req.params.ctf}", (data, err) ->
+          if not err
+            res.json {text: data.data.text}
+          else
+            res.json err
+      catch e
+        res.send 400
+
   #CHALLENGE Endpoints
   app.get "#{prefix}/challenges/:challenge", (req, res) ->
     try
