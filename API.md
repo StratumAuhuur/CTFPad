@@ -170,6 +170,24 @@ Response body:
         "id": "4a1da276d9cd0d245d6d186dc28148e2bc8c10b8aa19bdfeaf2e5d9dcc0ecd22"
     }
 
+### *GET* ctfs/<$CTF>/html
+Get HTML of the ctf etherpad.
+
+Response body:
+
+    {
+        "html": "<!DOCTYPE HTML><html><body>..."
+    }
+
+### *GET* ctfs/<$CTF>/text
+Get plain text of the ctf etherpad.
+
+Response body:
+
+    {
+        "text": "Everything in plain text\n   (with newlines and spaces)"
+    }
+
 ## Challenge endpoints
 
 ### *GET* challenges/<$CHALLENGE>
@@ -262,7 +280,7 @@ Response body:
     }
 
 ### *GET* challenges/<$CHALLENGE>/text
-Get Plaintext of the challenge etherpad.
+Get plain text of the challenge etherpad.
 
 Response body:
 
