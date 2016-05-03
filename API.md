@@ -261,3 +261,11 @@ Response body:
         "html": "<!DOCTYPE HTML><html><body>..."
     }
 
+### *GET* challenges/<$CHALLENGE>/text
+Get Plaintext of the challenge etherpad.
+
+Response body:
+
+    {
+        "text": "Everything in plain text\n   (with newlines and spaces)"
+    }
