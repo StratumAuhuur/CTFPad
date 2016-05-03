@@ -1,4 +1,6 @@
-exports.init = (app, db, upload, prefix) ->
+request = require('request')
+
+exports.init = (app, db, upload, config, prefix) ->
   # UTIL
   validateApiKey = (req, res, cb = ->) ->
     db.validateApiKey req.header('X-Apikey'), (user) ->
@@ -25,6 +27,23 @@ exports.init = (app, db, upload, prefix) ->
     else
       res.send 400
       return false
+
+  # direct etherpad interaction
+  getEtherpadAPI = (api, pad, cb) ->
+    url = "http://localhost:#{config.etherpad_internal_port}" + \
+          "/api/1/#{api}?apikey=#{config.etherpadAPIKey}&padID=#{pad}"
+    request.get url, (err, eresp, body) ->
+      if not err and eresp.statusCode == 200
+        data = JSON.parse(body)
+        if data.code == 0
+          cb data, null
+        else
+          cb {}, {errortype: "pad", error: data.message, code: data.code}
+      else
+        code = -1
+        if eresp
+          code = eresep.statusCode
+        cb {}, {errortype: "request", error: "#{err}", code: code}
 
   # USER Endpoints
   app.get "#{prefix}/user/whoami", (req, res) ->
@@ -206,6 +225,34 @@ exports.init = (app, db, upload, prefix) ->
     validateApiKey req, res, (user) ->
       upload user, 'challenge', req.params.challenge, req, res
 
+  app.get "#{prefix}/challenges/:challenge/html", (req, res) ->
+    try
+      req.params.challenge = parseInt req.params.challenge
+    catch e
+      res.send 400
+      return
+    validateApiKey req, res, (user) ->
+      try
+        data = getEtherpadAPI "getHTML", "challenge#{req.params.challenge}", (data, err) ->
+          if not err
+            res.json {html: data.data.html}
+          else
+            res.json err
+      catch e
+        res.send 400
 
-
-
+  app.get "#{prefix}/challenges/:challenge/text", (req, res) ->
+    try
+      req.params.challenge = parseInt req.params.challenge
+    catch e
+      res.send 400
+      return
+    validateApiKey req, res, (user) ->
+      try
+        data = getEtherpadAPI "getText", "challenge#{req.params.challenge}", (data, err) ->
+          if not err
+            res.json {text: data.data.text}
+          else
+            res.json err
+      catch e
+        res.send 400
