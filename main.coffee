@@ -192,7 +192,11 @@ app.get '/file/:fileid/:filename', (req, res) ->
   file = "#{__dirname}/uploads/#{req.params.fileid}"
   if /^[a-f0-9A-F]+$/.test(req.params.fileid) and fs.existsSync(file)
     db.mimetypeForFile req.params.fileid, (mimetype) ->
-      res.set 'Content-Type', mimetype
+      if 'html' in mimetype
+        console.log("replacing html mimetype '#{mimetype}' with octet-stream")
+        res.set 'Content-Type', 'application/octet-stream'
+      else
+        res.set 'Content-Type', mimetype
       res.sendfile file
   else res.send 404
 
