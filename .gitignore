@@ -8,3 +8,4 @@ uploads
 etherpad-lite/
 ctfpad-service.*
 forever.*
+oauth-*

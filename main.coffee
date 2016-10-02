@@ -7,6 +7,7 @@ mv = require 'mv'
 cons = require 'consolidate'
 WebSocketServer = require('ws').Server
 db = require './database.coffee'
+request = require 'request'
 
 # parse config file
 config = null
@@ -144,6 +145,60 @@ app.post '/changepassword', (req, res) ->
         else res.json {success: false, error: 'inputs do not match'}
       else res.json {success: false, error: 'incomplete request'}
     else res.json {success: false, error: 'invalid session'}
+
+# read the oauth stuff
+# https://developer.github.com/v3/oauth/
+# https://developer.github.com/v3/#current-version
+config.oauth = {}
+fs.readFile 'oauth-config.json', "utf8", (err, data) ->
+  if err
+    console.log "failed to read OAuth config from file " + err
+  else
+    config.oauth = JSON.parse(data)
+
+app.get '/githublogin', (req, res) ->
+  res.redirect 302, "https://github.com/login/oauth/authorize?" +
+                    "client_id=#{config.oauth.id}" +
+                    "&redirect_uri=#{config.oauth.redirecturl}" +
+
+# get json data from github api access
+githubApiAccess = (resource, acces_token, cb) ->
+  url = "https://api.github.com/#{resource}?access_token=#{acces_token}"
+  request.get url, (err, eresp, body) ->
+    if not err and eresp.statusCode == 200
+      data = JSON.parse(body)
+      cb data, null
+    else
+      code = -1
+      if eresp
+        code = eresep.statusCode
+      cb {}, {errortype: "request", error: "#{err}", code: code}
+
+app.get '/oauthcb', (req, res) ->
+  console.log req
+  code = req.params.code
+  # TODO: csrf handling
+  #state = req.params.state
+  url = 'https://github.com/login/oauth/access_token'
+  data = {client_id: config.oauth.id,
+          client_secret: config.oauth.secret,
+          code: code}
+  request.post url, form: data, (err, eresp, body) ->
+    if not err and eresp.statusCode == 200
+      githubApiAccess "/user", body.access_token, (user, err) ->
+        if not err
+          orgs = githubApiAccess "/users/#{user}/orgs", body.access_token, (orgs, err) ->
+            if not err
+              console.log "user #{user} authenticated with github. orgs: #{orgs}"
+              # TODO: check the organization and insert a session for the user
+              res.send 500, 'not implemented yet'
+              res.redirect 303, '/'
+            else
+              res.send 500, 'fail'
+        else
+          res.send 500, 'fail'
+    else
+      res.send 500, "failed to talk to github"
 
 app.post '/newapikey', (req, res) ->
   validateSession req.header('x-session-id'), (ans) ->
