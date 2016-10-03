@@ -246,22 +246,31 @@ app.get '/oauthcb', (req, res) ->
                 db.userExists user, (result) ->
                   if result
                     db.newSessionFor user, (session) ->
-                      #console.log "got new session for #{user} - #{session}"
                       if session then res.cookie 'ctfpad', session
                       res.redirect 303, '/'
                   else
-                    res.send 403, 'no such user'
+                    # do not create password for people only logged in with
+                    # github
+                    db.addUser user, null, (err) ->
+                      if err
+                        console.log "failed to create new user #{user} (without pw)", err
+                        res.send 500, 'Github login failed (new user)'
+                      else
+                        db.newSessionFor user, (session) ->
+                          if session then res.cookie 'ctfpad', session
+                          res.redirect 303, '/'
               else
+                console.log "oauthcb - #{user} triedto login but is not part of #{config.oauth.required_org}"
                 res.send 403, 'Github login failed (not part of org)'
             else
-              console.log err
+              console.log "oauthcb - failed to get github orgs", err
               res.send 500, 'Github login failed (failed to get orgs)'
         else
-          console.log err
+          console.log "oauthcb - failed to get current github user", err
           res.send 500, 'Github login failed (couldn\'t get current user)'
     else
-      console.log err
-      res.send 500, "failed to talk to github"
+      console.log "oauthcb - github unreachable", err
+      res.send 500, "Github login failed (unreachable)"
 
 app.post '/newapikey', (req, res) ->
   validateSession req.header('x-session-id'), (ans) ->

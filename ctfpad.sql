@@ -16,7 +16,7 @@ CREATE TABLE "assigned" (
 );
 CREATE TABLE user (
 	"name" TEXT PRIMARY KEY NOT NULL,
-	"pwhash" TEXT NOT NULL,
+	"pwhash" TEXT,
 	"sessid" TEXT,
 	"scope" INTEGER NOT NULL DEFAULT (0),
 	"apikey" TEXT
