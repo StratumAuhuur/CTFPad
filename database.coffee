@@ -9,7 +9,9 @@ sql = new sqlite3.Database 'ctfpad.sqlite', ->
   stmts.getUser = sql.prepare 'SELECT name,scope,apikey FROM user WHERE sessid = ?'
   stmts.getUserByApiKey = sql.prepare 'SELECT name,scope FROM user WHERE apikey = ? AND apikey NOT NULL'
   stmts.addUser = sql.prepare 'INSERT INTO user (name,pwhash) VALUES (?,?)'
+  stmts.addUserNoPw = sql.prepare 'INSERT INTO user (name) VALUES (?)'
   stmts.getUserPW = sql.prepare 'SELECT pwhash FROM user WHERE name = ?'
+  stmts.userExists = sql.prepare 'SELECT count(*) FROM user WHERE name = ?'
   stmts.insertSession = sql.prepare 'UPDATE user SET sessid = ? WHERE name = ?'
   stmts.voidSession = sql.prepare 'UPDATE user SET sessid = NULL WHERE sessid = ?'
   stmts.getChallenges = sql.prepare 'SELECT id,title,category,points,done FROM challenge WHERE ctf = ? ORDER BY category,points,id'
@@ -50,6 +52,18 @@ exports.checkPassword = (name, pw, cb = ->) ->
         sess = newRandomId()
         cb sess
         stmts.insertSession.run [sess, name]
+
+exports.newSessionFor = (name, cb = ->) ->
+  sess = newRandomId()
+  cb sess
+  stmts.insertSession.run [sess, name]
+
+exports.userExists = (name, cb = ->) ->
+  stmts.userExists.get [name], (err, ans) ->
+    if err or not ans
+      cb false
+    else
+      cb ans['count(*)'] == 1
 
 exports.validateApiKey = (apikey, cb) ->
   stmts.getUserByApiKey.get [apikey], H cb
@@ -126,14 +140,21 @@ exports.newApiKeyFor = (sessid, cb = ->) ->
   setImmediate cb, apikey
 
 exports.addUser = (name, pw, cb = ->) ->
-  bcrypt.hash pw, bcrypt.genSaltSync(), null, (err, hash) ->
-    if err then cb err
-    else
-      stmts.addUser.run [name, hash], (err, ans) ->
-        if err
-          cb err
-        else
-          cb false
+  if pw and pw.length > 0
+    bcrypt.hash pw, bcrypt.genSaltSync(), null, (err, hash) ->
+      if err then cb err
+      else
+        stmts.addUser.run [name, hash], (err, ans) ->
+          if err
+            cb err
+          else
+            cb false
+  else
+    stmts.addUserNoPw.run [name], (err, ans) ->
+      if err
+        cb err
+      else
+        cb false
 
 exports.getCTFFiles = (id, cb = ->) ->
   stmts.getFiles.all [1, id], H cb

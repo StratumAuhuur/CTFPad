@@ -5,9 +5,11 @@ process = require 'child_process'
 fs = require 'fs'
 mv = require 'mv'
 cons = require 'consolidate'
+request = require 'request'
+querystring = require('querystring')
+escape = querystring.escape
 WebSocketServer = require('ws').Server
 db = require './database.coffee'
-request = require 'request'
 
 # parse config file
 config = null
@@ -150,54 +152,115 @@ app.post '/changepassword', (req, res) ->
 # https://developer.github.com/v3/oauth/
 # https://developer.github.com/v3/#current-version
 config.oauth = {}
-fs.readFile 'oauth-config.json', "utf8", (err, data) ->
+
+fs.readFile './oauth-config.json', "utf8", (err, data) ->
   if err
     console.log "failed to read OAuth config from file " + err
   else
     config.oauth = JSON.parse(data)
+    config.oauth.states = {}
+
+newRandomState = (length = 64) ->
+    buf = new Buffer length
+    fd = fs.openSync '/dev/urandom', 'r'
+    fs.readSync fd, buf, 0, length, null
+    return buf.toString 'hex'
 
 app.get '/githublogin', (req, res) ->
-  res.redirect 302, "https://github.com/login/oauth/authorize?" +
-                    "client_id=#{config.oauth.id}" +
-                    "&redirect_uri=#{config.oauth.redirecturl}" +
+  unless config.oauth
+    res.send 500, "Github Login is disabled"
+  clientaddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  config.oauth.states[clientaddr] = newRandomState()
+  url = "https://github.com/login/oauth/authorize?client_id="
+  url += escape config.oauth.id
+  url += "&redirect_uri="
+  url += escape config.oauth.redirecturl
+  url += "&scope="
+  url += escape config.oauth.scope
+  url += "&state="
+  url += escape config.oauth.states[clientaddr]
+  console.log "redirecting to #{url}"
+  res.redirect 302, url
 
 # get json data from github api access
 githubApiAccess = (resource, acces_token, cb) ->
-  url = "https://api.github.com/#{resource}?access_token=#{acces_token}"
-  request.get url, (err, eresp, body) ->
+  acces_token = escape acces_token
+  unless resource[0] == '/'
+    resource = "/#{resource}"
+  url = "https://api.github.com#{resource}?access_token=#{acces_token}"
+  #console.log "performing github api request to #{url}"
+  headers = {'User-Agent': 'request', 'Accept': 'application/json'}
+  request.get url, headers: headers, (err, eresp, body) ->
+    #console.log "result: #{eresp.statusCode} - #{body}"
     if not err and eresp.statusCode == 200
       data = JSON.parse(body)
       cb data, null
     else
       code = -1
       if eresp
-        code = eresep.statusCode
+        code = eresp.statusCode
       cb {}, {errortype: "request", error: "#{err}", code: code}
 
 app.get '/oauthcb', (req, res) ->
-  console.log req
-  code = req.params.code
+  unless config.oauth
+    res.send 500, "Github Login is disabled"
+    return
+  unless req.query.code
+    res.send 500, "Github Login failed (missing code)"
+    return
+  clientaddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  unless req.query.state
+    res.send 500, "No state configured for #{clientaddr}"
+    return
+  if req.query.state != config.oauth.states[clientaddr]
+    console.log "possible CSRF attempt at #{clientaddr} - #{url}"
+    res.end 500, "Github Login failed (state mismatch)"
+    return
+  delete config.oauth.states[clientaddr]
+  code = req.query.code
   # TODO: csrf handling
   #state = req.params.state
   url = 'https://github.com/login/oauth/access_token'
-  data = {client_id: config.oauth.id,
-          client_secret: config.oauth.secret,
+  data = {client_id: config.oauth.id, \
+          client_secret: config.oauth.secret, \
           code: code}
-  request.post url, form: data, (err, eresp, body) ->
+  request.post url, form: data, headers: {Accept: 'application/json'}, (err, eresp, body) ->
+    #console.log err, eresp, body
     if not err and eresp.statusCode == 200
-      githubApiAccess "/user", body.access_token, (user, err) ->
+      body = JSON.parse(body)
+      if body.error
+        console.log "Github error: #{body.error} - #{body.error_description}"
+        res.send 500, "Github Login failed (no access_token)"
+        return
+      githubApiAccess "/user", body.access_token, (userdata, err) ->
+        user = userdata.login
+        #console.log "current github user is #{user} with token #{body.access_token}"
         if not err
-          orgs = githubApiAccess "/users/#{user}/orgs", body.access_token, (orgs, err) ->
+          orgs = githubApiAccess "/user/orgs", body.access_token, (orgdata, err) ->
             if not err
-              console.log "user #{user} authenticated with github. orgs: #{orgs}"
+              orgs = (o.login for o in orgdata)
+              #console.log "user #{user} authenticated with github. orgs: #{orgs}"
               # TODO: check the organization and insert a session for the user
-              res.send 500, 'not implemented yet'
-              res.redirect 303, '/'
+              if config.oauth.required_org in orgs
+                console.log "logging in user #{user} with github"
+                db.userExists user, (result) ->
+                  if result
+                    db.newSessionFor user, (session) ->
+                      #console.log "got new session for #{user} - #{session}"
+                      if session then res.cookie 'ctfpad', session
+                      res.redirect 303, '/'
+                  else
+                    res.send 403, 'no such user'
+              else
+                res.send 403, 'Github login failed (not part of org)'
             else
-              res.send 500, 'fail'
+              console.log err
+              res.send 500, 'Github login failed (failed to get orgs)'
         else
-          res.send 500, 'fail'
+          console.log err
+          res.send 500, 'Github login failed (couldn\'t get current user)'
     else
+      console.log err
       res.send 500, "failed to talk to github"
 
 app.post '/newapikey', (req, res) ->
