@@ -26,6 +26,16 @@ else
   console.log "config file not found"
   return
 
+# read oauth configuration file
+config.oauth = null
+fs.readFile './oauth-config.json', "utf8", (err, data) ->
+  if err
+    console.log "failed to read OAuth config from file ", err
+    return
+  else
+    config.oauth = JSON.parse(data)
+    config.oauth.states = {}
+
 # nodejs' http cannot deal with a chain in one file ->
 # quickfix according to http://stackoverflow.com/a/31629223/1518225
 cert = []
@@ -148,17 +158,10 @@ app.post '/changepassword', (req, res) ->
       else res.json {success: false, error: 'incomplete request'}
     else res.json {success: false, error: 'invalid session'}
 
+
 # read the oauth stuff
 # https://developer.github.com/v3/oauth/
 # https://developer.github.com/v3/#current-version
-config.oauth = {}
-
-fs.readFile './oauth-config.json', "utf8", (err, data) ->
-  if err
-    console.log "failed to read OAuth config from file " + err
-  else
-    config.oauth = JSON.parse(data)
-    config.oauth.states = {}
 
 newRandomState = (length = 64) ->
     buf = new Buffer length
@@ -166,11 +169,21 @@ newRandomState = (length = 64) ->
     fs.readSync fd, buf, 0, length, null
     return buf.toString 'hex'
 
+setOAuthState = (req, res) ->
+  #client = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  client = newRandomState(32)
+  res.cookie 'ctfpad-oauth-state-id', client
+  config.oauth.states[client] = newRandomState()
+  # FIXME: if this log is removed then somehow the states object becomes empty
+  # sometimes o_O
+  console.log "current oauth states", config.oauth.states
+  return config.oauth.states[client]
+
 app.get '/githublogin', (req, res) ->
   unless config.oauth
     res.send 500, "Github Login is disabled"
-  clientaddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-  config.oauth.states[clientaddr] = newRandomState()
+    return
+  state = setOAuthState req, res
   url = "https://github.com/login/oauth/authorize?client_id="
   url += escape config.oauth.id
   url += "&redirect_uri="
@@ -178,8 +191,8 @@ app.get '/githublogin', (req, res) ->
   url += "&scope="
   url += escape config.oauth.scope
   url += "&state="
-  url += escape config.oauth.states[clientaddr]
-  console.log "redirecting to #{url}"
+  url += escape state
+  #console.log "redirecting to #{url}"
   res.redirect 302, url
 
 # get json data from github api access
@@ -201,24 +214,37 @@ githubApiAccess = (resource, acces_token, cb) ->
         code = eresp.statusCode
       cb {}, {errortype: "request", error: "#{err}", code: code}
 
+checkOAuthState = (req, res) ->
+  #console.log "current oauth states", config.oauth.states
+  stateIdCookie = 'ctfpad-oauth-state-id'
+  clientStateKey = req.cookies[stateIdCookie]
+  unless req.query.state
+    console.log "checkOAuthState - No state passed for #{clientStateKey} -", req.query
+    res.send 500, "No state passed for #{clientStateKey}"
+    return
+  unless config.oauth.states and config.oauth.states[clientStateKey]
+    console.log "checkOAuthState - No state configured for #{clientStateKey} in ", config.oauth.states
+    res.send 500, "No state exists for #{clientStateKey}"
+    return
+  unless req.query.state == config.oauth.states[clientStateKey]
+    console.log "checkOAuthState - possible CSRF attempt at #{clientStateKey} - ", req.query, config.oauth.states
+    res.send 500, "Github Login failed (state mismatch)"
+    return
+
+  delete config.oauth.states[clientStateKey]
+  res.clearCookie stateIdCookie
+
 app.get '/oauthcb', (req, res) ->
   unless config.oauth
     res.send 500, "Github Login is disabled"
     return
+  unless checkOAuthState req, res
+    return
+  # get the code from github
   unless req.query.code
     res.send 500, "Github Login failed (missing code)"
     return
-  clientaddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-  unless req.query.state
-    res.send 500, "No state configured for #{clientaddr}"
-    return
-  if req.query.state != config.oauth.states[clientaddr]
-    console.log "possible CSRF attempt at #{clientaddr} - #{url}"
-    res.end 500, "Github Login failed (state mismatch)"
-    return
-  delete config.oauth.states[clientaddr]
   code = req.query.code
-  # TODO: csrf handling
   #state = req.params.state
   url = 'https://github.com/login/oauth/access_token'
   data = {client_id: config.oauth.id, \
