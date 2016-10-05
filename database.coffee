@@ -10,7 +10,8 @@ sql = new sqlite3.Database 'ctfpad.sqlite', ->
   stmts.getUserByApiKey = sql.prepare 'SELECT name,scope FROM user WHERE apikey = ? AND apikey NOT NULL'
   stmts.addUser = sql.prepare 'INSERT INTO user (name,pwhash) VALUES (?,?)'
   stmts.addUserOauth = sql.prepare 'INSERT INTO user (name, oauth) VALUES (?, 1)'
-  stmts.isOauthUser = sql.prepare 'SELECT oauth FROM user WHERE name = ?'
+  stmts.isOauthUser = sql.prepare 'SELECT oauth FROM user WHERE name = ? limit 1'
+  stmts.isOauthSession = sql.prepare 'SELECT oauth FROM user WHERE sessid = ? limit 1'
   stmts.getUserPW = sql.prepare 'SELECT pwhash FROM user WHERE name = ? and oauth = 0'
   stmts.userExists = sql.prepare 'SELECT count(*) FROM user WHERE name = ?'
   stmts.insertSession = sql.prepare 'UPDATE user SET sessid = ? WHERE name = ?'
@@ -124,14 +125,15 @@ exports.listAssignmentsForChallenge = (chalId, cb = ->) ->
   stmts.listAssignmentsForChallenge.reset()
 
 exports.changePassword = (sessid, newpw, cb = ->) ->
-  if stmts.isOauthUser.get H (ans) ->
-    if ans.oauth == 1 then cb {error: 'can\'t change passwords of oauth users'}
-    else
+  stmts.isOauthSession.get [sessid], H (ans) ->
+    if ans.oauth == 0
       bcrypt.hash newpw, bcrypt.genSaltSync(), null, (err, hash) ->
         if err then cb err
         else
           stmts.changePassword.run [hash, sessid]
           cb false
+    else
+      cb 'can\'t change passwords of oauth users'
 
 exports.getApiKeyFor = (sessid, cb = ->) ->
   stmts.getApiKeyFor.get [sessid], H (row) ->
@@ -154,19 +156,19 @@ exports.addUser = (name, pw, cb = ->) ->
           else
             cb false
   else
-    cb {error: "invalid password"}
+    cb 'invalid password (len > 12 and != "")'
 
-exports.addOauthUser = (name, cb = ->) ->
+exports.addUserOauth = (name, cb = ->) ->
   if name
     exports.userExists name, (r) ->
-      if r == 0
+      unless r
         stmts.addUserOauth.run [name], (err, ans) ->
           if err then cb err
           else cb false
       else
-        cb {error: 'user exists', e: r}
+        cb "user exists (#{r})"
   else
-    cb {error: 'invalid username'}
+    cb 'invalid username'
 
 exports.getCTFFiles = (id, cb = ->) ->
   stmts.getFiles.all [1, id], H cb
