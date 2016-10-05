@@ -9,8 +9,9 @@ sql = new sqlite3.Database 'ctfpad.sqlite', ->
   stmts.getUser = sql.prepare 'SELECT name,scope,apikey FROM user WHERE sessid = ?'
   stmts.getUserByApiKey = sql.prepare 'SELECT name,scope FROM user WHERE apikey = ? AND apikey NOT NULL'
   stmts.addUser = sql.prepare 'INSERT INTO user (name,pwhash) VALUES (?,?)'
-  stmts.addUserNoPw = sql.prepare 'INSERT INTO user (name) VALUES (?)'
-  stmts.getUserPW = sql.prepare 'SELECT pwhash FROM user WHERE name = ?'
+  stmts.addUserOauth = sql.prepare 'INSERT INTO user (name, oauth) VALUES (?, 1)'
+  stmts.isOauthUser = sql.prepare 'SELECT oauth FROM user WHERE name = ?'
+  stmts.getUserPW = sql.prepare 'SELECT pwhash FROM user WHERE name = ? and oauth = 0'
   stmts.userExists = sql.prepare 'SELECT count(*) FROM user WHERE name = ?'
   stmts.insertSession = sql.prepare 'UPDATE user SET sessid = ? WHERE name = ?'
   stmts.voidSession = sql.prepare 'UPDATE user SET sessid = NULL WHERE sessid = ?'
@@ -25,7 +26,7 @@ sql = new sqlite3.Database 'ctfpad.sqlite', ->
   stmts.isAssigned = sql.prepare 'SELECT COUNT(*) AS assigned FROM assigned WHERE user = ? AND challenge = ?'
   stmts.assign = sql.prepare 'INSERT INTO assigned VALUES (?,?)'
   stmts.unassign = sql.prepare 'DELETE FROM assigned WHERE user = ? AND challenge = ?'
-  stmts.changePassword = sql.prepare 'UPDATE user SET pwhash = ? WHERE sessid = ?'
+  stmts.changePassword = sql.prepare 'UPDATE user SET pwhash = ? WHERE sessid = ? and oauth = 0'
   stmts.getApiKeyFor = sql.prepare 'SELECT apikey FROM user WHERE sessid = ?'
   stmts.setApiKeyFor = sql.prepare 'UPDATE user SET apikey = ? WHERE sessid = ?'
   stmts.listAssignments = sql.prepare 'SELECT assigned.challenge,assigned.user FROM assigned JOIN challenge ON assigned.challenge = challenge.id JOIN user ON assigned.user = user.name WHERE challenge.ctf = ?'
@@ -123,11 +124,14 @@ exports.listAssignmentsForChallenge = (chalId, cb = ->) ->
   stmts.listAssignmentsForChallenge.reset()
 
 exports.changePassword = (sessid, newpw, cb = ->) ->
-  bcrypt.hash newpw, bcrypt.genSaltSync(), null, (err, hash) ->
-    if err then cb err
+  if stmts.isOauthUser.get H (ans) ->
+    if ans.oauth == 1 then cb {error: 'can\'t change passwords of oauth users'}
     else
-      stmts.changePassword.run [hash, sessid]
-      cb false
+      bcrypt.hash newpw, bcrypt.genSaltSync(), null, (err, hash) ->
+        if err then cb err
+        else
+          stmts.changePassword.run [hash, sessid]
+          cb false
 
 exports.getApiKeyFor = (sessid, cb = ->) ->
   stmts.getApiKeyFor.get [sessid], H (row) ->
@@ -140,7 +144,7 @@ exports.newApiKeyFor = (sessid, cb = ->) ->
   setImmediate cb, apikey
 
 exports.addUser = (name, pw, cb = ->) ->
-  if pw and pw.length > 0
+  if pw and pw.length >= 12
     bcrypt.hash pw, bcrypt.genSaltSync(), null, (err, hash) ->
       if err then cb err
       else
@@ -150,11 +154,19 @@ exports.addUser = (name, pw, cb = ->) ->
           else
             cb false
   else
-    stmts.addUserNoPw.run [name], (err, ans) ->
-      if err
-        cb err
+    cb {error: "invalid password"}
+
+exports.addOauthUser = (name, cb = ->) ->
+  if name
+    exports.userExists name, (r) ->
+      if r == 0
+        stmts.addUserOauth.run [name], (err, ans) ->
+          if err then cb err
+          else cb false
       else
-        cb false
+        cb {error: 'user exists', e: r}
+  else
+    cb {error: 'invalid username'}
 
 exports.getCTFFiles = (id, cb = ->) ->
   stmts.getFiles.all [1, id], H cb

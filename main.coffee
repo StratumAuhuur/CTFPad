@@ -266,7 +266,6 @@ app.get '/oauthcb', (req, res) ->
             if not err
               orgs = (o.login for o in orgdata)
               #console.log "user #{user} authenticated with github. orgs: #{orgs}"
-              # TODO: check the organization and insert a session for the user
               if config.oauth.required_org in orgs
                 console.log "logging in user #{user} with github"
                 db.userExists user, (result) ->
@@ -275,11 +274,10 @@ app.get '/oauthcb', (req, res) ->
                       if session then res.cookie 'ctfpad', session
                       res.redirect 303, '/'
                   else
-                    # do not create password for people only logged in with
-                    # github
-                    db.addUser user, null, (err) ->
+                    # create new special github user
+                    db.addUserOauth user, (err) ->
                       if err
-                        console.log "failed to create new user #{user} (without pw)", err
+                        console.log "failed to create new user #{user} (no pw, oauth-only)", err
                         res.send 500, 'Github login failed (new user)'
                       else
                         db.newSessionFor user, (session) ->
