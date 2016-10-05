@@ -27,7 +27,6 @@
           <a class="brand">LosFuzzys CTFPad</a>
           <ul class="nav pull-right">
             <li>
-              <a href="#registermodal" data-toggle="modal">Register</a>
             </li>
           </ul>
         </div>
@@ -35,34 +34,14 @@
     </div>
     <div class="container-fluid">
       <div class="row-fluid">
-        <form action="/login" method="POST" class="form-horizontal">
-          <div class="control-group">
-            <label for="login_username" class="control-label">username:</label>
-            <div class="controls">
-              <input type="text" name="name" id="login_username" />
-            </div>
-          </div>
-          <div class="control-group">
-            <label for="login_password" class="control-label">password:</label>
-            <div class="controls">
-              <input type="password" name="password" id="login_password" />
-            </div>
-          </div>
-          <div class="control-group">
-            <div class="controls">
-              <input type="submit" value="Login" class="btn btn-primary"/>
-            </div>
-          </div>
-        </form>
 
         <form action="/githublogin" method="GET" class="form-horizontal">
           <div class="control-group">
             <div class="controls">
-              <input type="submit" value="Login with Github" class="btn btn-primary"/>
+              <input type="submit" value="Login with Github" class="btn btn-primary btn-lg" style="padding: 2em;"/>
             </div>
           </div>
         </form>
-	<p>To register, please activate javascript and click on the link in the top right corner. <br/>An authkey can be retrieved from f0rki, stefan, or another LF member.</p>
       </div>
     </div>
     <div id="registermodal" class="modal hide fade">
