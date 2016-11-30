@@ -87,7 +87,11 @@ validateSession = (session, cb=->) ->
 
 app.get '/', (req, res) ->
   validateSession req.cookies.ctfpad, (user) ->
-    unless user then res.sendfile 'web/login.html'
+    unless user
+        if config.oauth
+            res.redirect 302, '/githublogin'
+        else
+            res.sendfile 'web/login.html'
     else
       user.etherpad_port = config.etherpad_port
       db.getCTFs (ctfs) ->
