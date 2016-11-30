@@ -147,8 +147,9 @@ app.post '/register', (req, res) ->
   else res.json {success: false, error: 'incomplete request'}
 
 app.get '/logout', (req, res) ->
-  res.clearCookie 'ctfpad'
-  res.redirect 303, '/'
+    res.clearCookie 'ctfpad'
+    unless config.oauth
+        res.redirect 303, '/'
 
 app.post '/changepassword', (req, res) ->
   validateSession req.header('x-session-id'), (ans) ->
