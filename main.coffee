@@ -1,4 +1,4 @@
-express = require 'express'
+fexpress = require 'express'
 https = require 'https'
 httpProxy = require 'http-proxy'
 process = require 'child_process'
@@ -148,8 +148,10 @@ app.post '/register', (req, res) ->
 
 app.get '/logout', (req, res) ->
     res.clearCookie 'ctfpad'
-    unless config.oauth
-        res.redirect 303, '/'
+    if config.oauth
+      res.sendfile 'web/login.html'
+    else
+      res.redirect 303, '/'
 
 app.post '/changepassword', (req, res) ->
   validateSession req.header('x-session-id'), (ans) ->
