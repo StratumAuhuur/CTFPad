@@ -4,7 +4,7 @@
       'host'              : location.href.replace(location.port,window.etherpad_port).replace(/#.+/,'').replace('#',''), //just to make sure
       'baseUrl'           : 'p/',
       'showControls'      : true,
-      'showChat'          : false,
+      'showChat'          : true,
       'showLineNumbers'   : true,
       'useMonospaceFont'  : true,
       'noColors'          : false,
