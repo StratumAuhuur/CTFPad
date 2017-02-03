@@ -29,9 +29,11 @@ exports.init = (app, db, upload, config, prefix) ->
       return false
 
   # direct etherpad interaction
-  getEtherpadAPI = (api, pad, cb) ->
+  getEtherpadAPI = (api, pad, params, cb) ->
     url = "http://localhost:#{config.etherpad_internal_port}" + \
           "/api/1/#{api}?apikey=#{config.etherpadAPIKey}&padID=#{pad}"
+    url += "&#{encodeURIComponent k}=#{encodeURIComponent v}" for k ,v of params
+
     request.get url, (err, eresp, body) ->
       if not err and eresp.statusCode == 200
         data = JSON.parse(body)
@@ -115,16 +117,26 @@ exports.init = (app, db, upload, config, prefix) ->
     validateApiKey req, res, (user) ->
       validArg = {challenge: {title: 'string', category: 'string', points: 'number'}}
       if validateArguments req, res, validArg
+        sendresult = (id, err) ->
+          unless err
+            res.json {challenge:
+              id: id
+              title: req.body.challenge.title
+              category: req.body.challenge.category
+              points: req.body.challenge.points
+              done: false
+            }
+            exports.broadcast {type: 'ctfmodification'}, req.params.ctf
+          else
+            res.json err
         db.addChallenge req.params.ctf, req.body.challenge.title,
             req.body.challenge.category, req.body.challenge.points, (id) ->
-              res.json {challenge:
-                id: id
-                title: req.body.challenge.title
-                category: req.body.challenge.category
-                points: req.body.challenge.points
-                done: false
-              }
-              exports.broadcast {type: 'ctfmodification'}, req.params.ctf
+              if 'text' in req.body.challenge
+                text = "#{req.body.challenge}"
+                data = getEtherpadAPI "setText", "challenge#{req.params.challenge}", {text: text}, (data, err) ->
+                  sendresult id, err
+              else
+                sendresult id, false
 
   app.get "#{prefix}/ctfs/:ctf/files", (req, res) ->
     try
@@ -284,6 +296,22 @@ exports.init = (app, db, upload, config, prefix) ->
         data = getEtherpadAPI "getText", "challenge#{req.params.challenge}", (data, err) ->
           if not err
             res.json {text: data.data.text}
+          else
+            res.json err
+      catch e
+        res.send 400
+
+  app.post "#{prefix}/challenges/:challenge/text", (req, res) ->
+    try
+      req.params.challenge = parseInt req.params.challenge
+    catch e
+      res.send 400
+      return
+    validateApiKey req, res, (user) ->
+      try
+        data = getEtherpadAPI "setText", "challenge#{req.params.challenge}", {text: req.body}, (data, err) ->
+          if not err
+            res.json {success: true}
           else
             res.json err
       catch e
