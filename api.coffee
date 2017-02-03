@@ -161,7 +161,7 @@ exports.init = (app, db, upload, config, prefix) ->
       return
     validateApiKey req, res, (user) ->
       try
-        data = getEtherpadAPI "getHTML", "ctf#{req.params.ctf}", (data, err) ->
+        data = getEtherpadAPI "getHTML", "ctf#{req.params.ctf}", {},  (data, err) ->
           if not err
             res.json {html: data.data.html}
           else
@@ -177,7 +177,7 @@ exports.init = (app, db, upload, config, prefix) ->
       return
     validateApiKey req, res, (user) ->
       try
-        data = getEtherpadAPI "getText", "ctf#{req.params.ctf}", (data, err) ->
+        data = getEtherpadAPI "getText", "ctf#{req.params.ctf}", {}, (data, err) ->
           if not err
             res.json {text: data.data.text}
           else
@@ -277,7 +277,7 @@ exports.init = (app, db, upload, config, prefix) ->
       return
     validateApiKey req, res, (user) ->
       try
-        data = getEtherpadAPI "getHTML", "challenge#{req.params.challenge}", (data, err) ->
+        data = getEtherpadAPI "getHTML", "challenge#{req.params.challenge}", {}, (data, err) ->
           if not err
             res.json {html: data.data.html}
           else
@@ -293,7 +293,7 @@ exports.init = (app, db, upload, config, prefix) ->
       return
     validateApiKey req, res, (user) ->
       try
-        data = getEtherpadAPI "getText", "challenge#{req.params.challenge}", (data, err) ->
+        data = getEtherpadAPI "getText", "challenge#{req.params.challenge}", {}, (data, err) ->
           if not err
             res.json {text: data.data.text}
           else
