@@ -309,10 +309,13 @@ exports.init = (app, db, upload, config, prefix) ->
       return
     validateApiKey req, res, (user) ->
       try
-        data = getEtherpadAPI "setText", "challenge#{req.params.challenge}", {text: req.body}, (data, err) ->
-          if not err
-            res.json {success: true}
-          else
-            res.json err
+        if req.body.text and typeof(req.body.text) is "string"
+          data = getEtherpadAPI "setText", "challenge#{req.params.challenge}", {text: req.body.text}, (data, err) ->
+            if not err
+              res.json {success: true}
+            else
+              res.json err
+        else
+          res.send 400
       catch e
         res.send 400
