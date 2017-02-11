@@ -2,6 +2,7 @@
 (function() {
   $(function() {
     var sessid, sock, updateProgress;
+    proto = location.protocol == "http" ? "ws" : "wss"
     sock = new WebSocket("wss" + (location.href.substring(location.protocol.length - 1, location.href.lastIndexOf('/'))));
     sock.onopen = function() {
       sock.send("\"" + sessid + "\"");
