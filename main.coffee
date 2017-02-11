@@ -1,4 +1,5 @@
 express = require 'express'
+http = require 'http'
 https = require 'https'
 httpProxy = require 'http-proxy'
 process = require 'child_process'
@@ -23,11 +24,6 @@ else
   console.log "config file not found"
   return
 
-if config.useHTTPS
-  console.log 'use https'
-else
-  console.log 'use http'
-
 app = express()
 app.engine 'html', cons.mustache
 app.set 'view engine', 'html'
@@ -43,8 +39,13 @@ app.use '/doc/', express.static 'web/doc/'
 options =
   key: fs.readFileSync config.keyfile
   cert: fs.readFileSync config.certfile
-server = https.createServer options, app
 scoreboards = {2: ['test','test2']}
+
+if config.useHTTPS
+  server = https.createServer options, app
+else 
+  server = http.createServer app
+
 
 validateLogin = (user, pass, cb) ->
   if user and pass then db.checkPassword user, pass, cb
@@ -232,18 +233,33 @@ proxy.on 'error', (err, req, res) ->
     res.send 500
   catch e then return
 
-proxyServer = https.createServer options, (req, res) ->
-  if req.headers.cookie
-    sessid = req.headers.cookie.substr req.headers.cookie.indexOf('ctfpad=')+7, 32
-    validateSession sessid, (ans) ->
-      if ans
-        proxy.web req, res
-      else
-        res.writeHead 403
-        res.end()
-  else
-    res.writeHead 403
-    res.end()
+proxyServer = null
+if config.proxyUseHTTPS
+  proxyServer = https.createServer options, (req, res) ->
+    if req.headers.cookie
+      sessid = req.headers.cookie.substr req.headers.cookie.indexOf('ctfpad=')+7, 32
+      validateSession sessid, (ans) ->
+        if ans
+          proxy.web req, res
+        else
+          res.writeHead 403
+          res.end()
+    else
+      res.writeHead 403
+      res.end()
+else
+  proxyServer = http.createServer (req, res) ->
+    if req.headers.cookie
+      sessid = req.headers.cookie.substr req.headers.cookie.indexOf('ctfpad=')+7, 32
+      validateSession sessid, (ans) ->
+        if ans
+          proxy.web req, res
+        else
+          res.writeHead 403
+          res.end()
+    else
+      res.writeHead 403
+      res.end()
 
 ###proxyServer.on 'upgrade', (req, socket, head) -> ## USELESS SOMEHOW???
   console.log "UPGRADE UPGRADE UPGRADE"
