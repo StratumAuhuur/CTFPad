@@ -2,7 +2,7 @@
 (function() {
   $(function() {
     var sessid, sock, updateProgress;
-    sock = new WebSocket("wss" + (location.href.substring(5, location.href.lastIndexOf('/'))));
+    sock = new WebSocket("wss" + (location.href.substring(location.protocol.length - 1, location.href.lastIndexOf('/'))));
     sock.onopen = function() {
       sock.send("\"" + sessid + "\"");
       sock.onclose = function() {

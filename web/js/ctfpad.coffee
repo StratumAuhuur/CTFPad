@@ -1,5 +1,5 @@
 $ ->
-  sock = new WebSocket "wss#{location.href.substring 5, location.href.lastIndexOf '/'}"
+  sock = new WebSocket "wss#{location.href.substring location.protocol.length-1, location.href.lastIndexOf '/'}"
   sock.onopen = ->
     sock.send "\"#{sessid}\""
     sock.onclose = ->
