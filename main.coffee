@@ -23,6 +23,11 @@ else
   console.log "config file not found"
   return
 
+if config.useHTTPS
+  console.log 'use https'
+else
+  console.log 'use http'
+
 app = express()
 app.engine 'html', cons.mustache
 app.set 'view engine', 'html'
