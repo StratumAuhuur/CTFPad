@@ -255,8 +255,8 @@ etherpad.stderr.on 'data', (line) ->
 
 wss = new WebSocketServer {server:server}
 wss.broadcast = (msg, exclude, scope=null) ->
-  for c in this.clients
-    unless c.authenticated then continue
+  this.clients.forEach (c) ->
+    unless c.authenticated then return
     if c isnt exclude and (scope is null or scope is c.authenticated.scope)
       try
         c.send msg
@@ -282,7 +282,7 @@ wss.on 'connection', (sock) ->
                 sock.send JSON.stringify {type: 'assign', subject: i.challenge, data: [{name: i.user}, true]}
             # notify all users about new authentication and notify new socket about other users
             wss.broadcast JSON.stringify {type: 'login', data: ans.name}
-            for s in wss.getClients()
+            wss.getClients().forEach (s) ->
               if s.authenticated and s.authenticated.name isnt ans.name
                 sock.send JSON.stringify {type: 'login', data: s.authenticated.name}
     else
@@ -304,7 +304,7 @@ wss.on 'connection', (sock) ->
             db.modifyChallenge c.id, c.title, c.category, c.points
           else
             db.addChallenge msg.data.ctf, c.title, c.category, c.points
-        for s in wss.clients
+        wss.clients.forEach (s) ->
           if s.authenticated and s.authenticated.scope is msg.data.ctf
             s.send JSON.stringify {type: 'ctfmodification'}
       else console.log msg
