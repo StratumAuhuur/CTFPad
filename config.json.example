@@ -5,6 +5,6 @@
 	"keyfile": "key.pem",
 	"certfile": "cert.pem",
 	"authkey": "CHANGE_THIS",
-    "useHTTPS": false,
-    "proxyUseHTTPS": false
+	"useHTTPS": false,
+	"proxyUseHTTPS": false
 }
