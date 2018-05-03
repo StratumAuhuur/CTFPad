@@ -202,7 +202,7 @@ upload = (user, objtype, objid, req, res) ->
   if type != -1 and req.files.files
     mimetype = null
     process.execFile '/usr/bin/file', ['-bi', req.files.files.path], (err, stdout) ->
-      mimetype = unless err then stdout.toString()
+      mimetype = unless err then stdout.toString().trim()
       db[["addCTFFile", "addChallengeFile"][type]] objid, req.files.files.name, user.name, mimetype, (err, id) ->
         if err then res.json {success: false, error: err}
         else
