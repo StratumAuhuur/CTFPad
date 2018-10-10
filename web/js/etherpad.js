@@ -1,7 +1,8 @@
 (function( $ ){
   $.fn.pad = function( options ) {
+    var hostUrl = new URL(location.origin);
     var settings = {
-      'host'              : location.href.replace(location.port,window.etherpad_port).replace(/#.+/,'').replace('#',''), //just to make sure
+      'host'              : hostUrl.protocol + '//' + hostUrl.hostname + ":" + window.etherpad_port + "/",
       'baseUrl'           : 'p/',
       'showControls'      : true,
       'showChat'          : false,
