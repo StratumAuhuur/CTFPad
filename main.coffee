@@ -321,6 +321,9 @@ wss.on 'connection', (sock) ->
             db.addChallenge ctfid, c.title, c.category, c.points
       else if msg.type and msg.type is 'modifyctf'
         for c in msg.data.challenges
+
+          if !c.points
+            c.points = 0
           if c.id
             db.modifyChallenge c.id, c.title, c.category, c.points
           else
