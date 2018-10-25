@@ -6,5 +6,6 @@
 	"certfile": "cert.pem",
 	"authkey": "CHANGE_THIS",
 	"useHTTPS": false,
-	"proxyUseHTTPS": false
+	"proxyUseHTTPS": false,
+	"team_name": "Foo"
 }

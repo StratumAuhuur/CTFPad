@@ -57,9 +57,10 @@ validateSession = (session, cb=->) ->
 
 app.get '/', (req, res) ->
   validateSession req.cookies.ctfpad, (user) ->
-    unless user then res.sendfile 'web/login.html'
+    unless user then res.render 'login.html', { "team_name": config.team_name }
     else
       user.etherpad_port = config.etherpad_port
+      user.team_name = config.team_name
       db.getCTFs (ctfs) ->
         user.all_ctfs = ctfs
         n = 0
