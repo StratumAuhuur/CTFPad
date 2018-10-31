@@ -51,8 +51,13 @@ options =
   key: fs.readFileSync config.keyfile
   cert: fs.readFileSync config.certfile
   ca: ca
-server = https.createServer options, app
 scoreboards = {2: ['test','test2']}
+
+if config.useHTTPS
+  server = https.createServer options, app
+else 
+  server = http.createServer app
+
 
 validateLogin = (user, pass, cb) ->
   if user and pass then db.checkPassword user, pass, cb
@@ -182,7 +187,7 @@ app.get '/file/:fileid/:filename', (req, res) ->
   file = "#{__dirname}/uploads/#{req.params.fileid}"
   if /^[a-f0-9A-F]+$/.test(req.params.fileid) and fs.existsSync(file)
     db.mimetypeForFile req.params.fileid, (mimetype) ->
-      res.set 'Content-Type', mimetype
+      res.set 'Content-Type', mimetype.trim()
       res.sendfile file
   else res.send 404
 
@@ -209,7 +214,7 @@ upload = (user, objtype, objid, req, res) ->
   if type != -1 and req.files.files
     mimetype = null
     process.execFile '/usr/bin/file', ['-bi', req.files.files.path], (err, stdout) ->
-      mimetype = unless err then stdout.toString()
+      mimetype = unless err then stdout.toString().trim()
       db[["addCTFFile", "addChallengeFile"][type]] objid, req.files.files.name, user.name, mimetype, (err, id) ->
         if err then res.json {success: false, error: err}
         else
@@ -240,18 +245,33 @@ proxy.on 'error', (err, req, res) ->
     res.send 500
   catch e then return
 
-proxyServer = https.createServer options, (req, res) ->
-  if req.headers.cookie
-    sessid = req.headers.cookie.substr req.headers.cookie.indexOf('ctfpad=')+7, 32
-    validateSession sessid, (ans) ->
-      if ans
-        proxy.web req, res
-      else
-        res.writeHead 403
-        res.end()
-  else
-    res.writeHead 403
-    res.end()
+proxyServer = null
+if config.proxyUseHTTPS
+  proxyServer = https.createServer options, (req, res) ->
+    if req.headers.cookie
+      sessid = req.headers.cookie.substr req.headers.cookie.indexOf('ctfpad=')+7, 32
+      validateSession sessid, (ans) ->
+        if ans
+          proxy.web req, res
+        else
+          res.writeHead 403
+          res.end()
+    else
+      res.writeHead 403
+      res.end()
+else
+  proxyServer = http.createServer (req, res) ->
+    if req.headers.cookie
+      sessid = req.headers.cookie.substr req.headers.cookie.indexOf('ctfpad=')+7, 32
+      validateSession sessid, (ans) ->
+        if ans
+          proxy.web req, res
+        else
+          res.writeHead 403
+          res.end()
+    else
+      res.writeHead 403
+      res.end()
 
 ###proxyServer.on 'upgrade', (req, socket, head) -> ## USELESS SOMEHOW???
   console.log "UPGRADE UPGRADE UPGRADE"
@@ -268,8 +288,8 @@ etherpad.stderr.on 'data', (line) ->
 
 wss = new WebSocketServer {server:server}
 wss.broadcast = (msg, exclude, scope=null) ->
-  for c in this.clients
-    unless c.authenticated then continue
+  this.clients.forEach (c) ->
+    unless c.authenticated then return
     if c isnt exclude and (scope is null or scope is c.authenticated.scope)
       try
         c.send msg
@@ -295,7 +315,7 @@ wss.on 'connection', (sock) ->
                 sock.send JSON.stringify {type: 'assign', subject: i.challenge, data: [{name: i.user}, true]}
             # notify all users about new authentication and notify new socket about other users
             wss.broadcast JSON.stringify {type: 'login', data: ans.name}
-            for s in wss.getClients()
+            wss.getClients().forEach (s) ->
               if s.authenticated and s.authenticated.name isnt ans.name
                 sock.send JSON.stringify {type: 'login', data: s.authenticated.name}
     else
@@ -317,7 +337,7 @@ wss.on 'connection', (sock) ->
             db.modifyChallenge c.id, c.title, c.category, c.points
           else
             db.addChallenge msg.data.ctf, c.title, c.category, c.points
-        for s in wss.clients
+        wss.clients.forEach (s) ->
           if s.authenticated and s.authenticated.scope is msg.data.ctf
             s.send JSON.stringify {type: 'ctfmodification'}
       else console.log msg
