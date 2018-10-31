@@ -1,4 +1,5 @@
 express = require 'express'
+http = require 'http'
 https = require 'https'
 httpProxy = require 'http-proxy'
 process = require 'child_process'
@@ -23,17 +24,24 @@ else
   console.log "config file not found"
   return
 
-# nodejs' http cannot deal with a chain in one file ->
-# quickfix according to http://stackoverflow.com/a/31629223/1518225
-cert = []
-ca = []
-chain = fs.readFileSync(config.fullchain).toString()
-chain.split('\n').forEach (line) ->
-  cert.push line
-  if line.match(/-END CERTIFICATE-/)
-    ca.push cert.join('\n')
-    cert = []
-  return
+if config.useHTTPS or config.proxyUseHTTPS
+  # nodejs' http cannot deal with a chain in one file ->
+  # quickfix according to http://stackoverflow.com/a/31629223/1518225
+  cert = []
+  ca = []
+  chain = fs.readFileSync(config.fullchain).toString()
+  chain.split('\n').forEach (line) ->
+    cert.push line
+    if line.match(/-END CERTIFICATE-/)
+      ca.push cert.join('\n')
+      cert = []
+    return
+
+  options =
+    key: fs.readFileSync config.keyfile
+    cert: fs.readFileSync config.certfile
+    ca: ca
+
 
 app = express()
 app.engine 'html', cons.mustache
@@ -47,10 +55,7 @@ app.use '/css/', express.static 'web/css/'
 app.use '/img/', express.static 'web/img/'
 app.use '/doc/', express.static 'web/doc/'
 
-options =
-  key: fs.readFileSync config.keyfile
-  cert: fs.readFileSync config.certfile
-  ca: ca
+
 scoreboards = {2: ['test','test2']}
 
 if config.useHTTPS
