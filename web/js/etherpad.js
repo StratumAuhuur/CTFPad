@@ -1,8 +1,8 @@
 (function( $ ){
   $.fn.pad = function( options ) {
     var settings = {
-      'host'              : location.href.replace(location.port,window.etherpad_port).replace(/#.+/,'').replace('#',''), //just to make sure
-      'baseUrl'           : 'p/',
+      'host'              : location.href.replace(/#.+/,'').replace('#',''), //just to make sure
+      'baseUrl'           : 'etherpad/p/',
       'showControls'      : true,
       'showChat'          : true,
       'showLineNumbers'   : true,
