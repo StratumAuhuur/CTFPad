@@ -5,5 +5,7 @@
 	"keyfile": "key.pem",
 	"certfile": "cert.pem",
 	"fullchain": "fullchain.pem",
-	"authkey": "CHANGE_THIS"
+	"authkey": "CHANGE_THIS",
+	"useHTTPS": false,
+	"proxyUseHTTPS": false
 }
