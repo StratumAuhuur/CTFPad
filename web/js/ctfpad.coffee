@@ -1,6 +1,6 @@
 $ ->
   proto = if location.protocol is 'http:' then 'ws' else 'wss'
-  sock = new WebSocket "#{proto}#{location.href.substring location.protocol.length-1, location.href.lastIndexOf '/'}"
+  sock = new WebSocket "#{proto}#{location.href.substring location.protocol.length-1, location.href.lastIndexOf '/'}/ws/"
   sock.onopen = ->
     sock.send "\"#{sessid}\""
     sock.onclose = ->
