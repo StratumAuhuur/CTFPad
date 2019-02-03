@@ -269,11 +269,17 @@ else
     if ans then proxy.ws req, socket, head else res.send 403###
 
 ## START ETHERPAD
-etherpad = process.spawn 'etherpad-lite/bin/run.sh'
-etherpad.stdout.on 'data', (line) ->
-  console.log "[etherpad] #{line.toString 'utf8', 0, line.length-1}"
-etherpad.stderr.on 'data', (line) ->
-  console.log "[etherpad] #{line.toString 'utf8', 0, line.length-1}"
+spawn_etherpad = () ->
+  pad = process.spawn 'etherpad-lite/bin/run.sh'
+  pad.stdout.on 'data', (line) ->
+    console.log "[etherpad] #{line.toString 'utf8', 0, line.length-1}"
+  pad.stderr.on 'data', (line) ->
+    console.log "[etherpad] #{line.toString 'utf8', 0, line.length-1}"
+  pad.on 'close', (code) ->
+    console.log "[etherpad] exitted unexpectedly with error code #{code}, restarting..."
+    spawn_etherpad()
+
+spawn_etherpad()
 
 wss = new WebSocketServer {server:server}
 wss.broadcast = (msg, exclude, scope=null) ->
